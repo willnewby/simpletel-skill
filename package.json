@@ -1,0 +1,17 @@
+{
+  "description": "Onboard an application to simpletel with upstream OpenTelemetry. Installable by Pi as a skill.",
+  "keywords": [
+    "pi-package",
+    "simpletel",
+    "opentelemetry",
+    "otel",
+    "onboarding"
+  ],
+  "name": "simpletel-skill",
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "version": "0.1.0"
+}
