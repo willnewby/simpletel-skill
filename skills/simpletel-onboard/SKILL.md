@@ -2,7 +2,7 @@
 name: simpletel-onboard
 description: Onboard an application to simpletel — instrument it with upstream OpenTelemetry and send its traces to simpletel. Use when the user asks to "onboard <app> to simpletel", "instrument <app> with OpenTelemetry", or "send traces to simpletel".
 ---
-<!-- managed by: simpletel skill install (0.2.0) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
+<!-- managed by: simpletel skill install (20261009.1952.16+ae9a795) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
 
 Onboard an application to **simpletel** — get its traces flowing into
 `simpletel get traces` — using the `simpletel` CLI and **upstream
@@ -15,6 +15,31 @@ variables and nothing in code.
 Work through these steps in order. Do not skip the smoke test (step 4): a
 green smoke test proves credentials and connectivity *before* any code change,
 so a failure there is a login/network problem, not an instrumentation one.
+
+## 0. Check the plan and limits
+
+Before you act, read the account's plan and usage so you know the allowance
+you are working within and can state what is left. Run:
+
+```
+simpletel usage --format json
+```
+
+The JSON is for you, not the human — it is one line you can read directly.
+
+- If it errors, or the document reports `"billing_enabled": false`, note that
+  and continue: older and self-hosted servers are fine, and the rest of
+  onboarding does not depend on billing.
+- If the account is near or at a limit (`records_used` approaching
+  `allowance`, or `subscription_status` not active), say so to the human
+  plainly and surface the `upgrade_url` from the same document. Better to name
+  the ceiling before it rejects a command than after.
+
+**When any command fails with a plan-limit rejection** (HTTP 429 whose body
+carries an `upgrade_url`), present that `upgrade_url` to the human and stop
+that step — do not retry the same command, and do not loop. The account needs
+the plan raised, which is the human's decision, not a transient error to wait
+out.
 
 ## 1. Confirm a credential
 
@@ -115,15 +140,56 @@ HTTP-only).
 
 ## 7. Verify the app's own spans
 
-Run the real application with the env block applied, exercise it, then read
-the traces back:
+Run the real application with the env block applied and **exercise it** (hit
+an endpoint, run a request), then verify with the dedicated command:
 
 ```
-simpletel get traces --service <OTEL_SERVICE_NAME>
-simpletel get trace <trace-id>
+simpletel verify --service <OTEL_SERVICE_NAME>
 ```
 
-Confirm the app's own spans (HTTP handlers, DB calls, etc. from the
-auto-instrumentation) appear under the expected `service.name` — not just the
-`cli.run` wrapper span from the smoke test. That is the difference between
-"the pipe works" and "the app is instrumented." Onboarding is done.
+Definition of done is **exit code 0**: a trace newer than the last 10 minutes,
+under the expected `service.name`, carrying spans from a library
+auto-instrumentation. That is the difference between "the pipe works" and
+"the app is instrumented" — not just the `cli.run` wrapper span from the
+smoke test. If the app is slow to start, add `--deadline 30s` (or longer);
+`simpletel verify` polls until it succeeds or the deadline expires.
+
+On failure, `simpletel verify` reports the rung that did not pass and exits
+non-zero. Diagnose from that rung:
+
+| Rung | Meaning | If it fails, check |
+|---|---|---|
+| **pipe** | any fresh trace arrived at all | endpoint reachability (is the server up?), the team credential (`x-simpletel-team` in `OTEL_EXPORTER_OTLP_HEADERS` from `simpletel env`), and that the app's OTLP exporter points at simpletel. `simpletel run -- <cmd>` is a quick pipe test. |
+| **identity** | a fresh trace under `service.name` == `<OTEL_SERVICE_NAME>` | `OTEL_SERVICE_NAME` was actually exported as the expected value (the command prints the service names it saw), and the env block was applied to the exporter process, not a parent shell that the server doesn't inherit. |
+| **richness** | a matching trace has spans from a library auto-instrumentation | auto-instrumentation is not engaged — install the instrumentation packages for the app's dependencies, wrap the real serving process with the zero-code agent, and exercise real HTTP traffic (an idle server emits nothing). Batch exporters flush on a delay (~5s), so wait a few seconds before concluding it is broken. |
+
+For a **Python/Django** app whose richness rung fails, in order:
+
+1. Run `opentelemetry-bootstrap -a install` **after** `pip install -r
+   requirements.txt` — it inspects *already-installed* packages, so running
+   it first installs nothing.
+2. Wrap the **real serving process** with `opentelemetry-instrument` (the
+   `gunicorn`/`uvicorn` command or `manage.py runserver`), not a launcher
+   shell script that spawns workers outside the wrapper.
+3. Make a real HTTP request to the running app — Django spans appear on an
+   actual request through the WSGI middleware, not while the server sits idle.
+4. Batch exporters flush on a ~5s schedule, so wait before deciding it is
+   broken.
+
+## 8. Hand off to the human
+
+`simpletel verify` exiting 0 is the end of the work, not the end of the
+onboarding. Close by printing one fixed summary so the human has something
+concrete, in this order:
+
+- **Team id** — the resolved team's 20-hex id (`simpletel team list`, or the
+  `x-simpletel-team` header value from `simpletel env`).
+- **Service name** — the `OTEL_SERVICE_NAME` the app now exports under.
+- **Verification** — that `simpletel verify` succeeded, plus the first
+  verified trace id from its `verified: service=… trace=…` line.
+- **Console URL** — from `simpletel console` (or the same web console in a
+  browser), where the human can watch traces land.
+
+Then add the one-line "what to do next": open the console's errors-only view
+to catch problems early. Report those four fields together — never leave the
+human with just "it worked".

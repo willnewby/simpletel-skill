@@ -1,6 +1,6 @@
 # simpletel-skill
 
-[Pi](https://pi.dev) skill package for [simpletel](https://github.com/willnewby/simpletel):
+[Pi](https://pi.dev) skill package for [simpletel](https://simpletel.dev):
 
 - `simpletel-onboard` — onboard an application with upstream OpenTelemetry.
 - `simpletel-embed` — embed simpletel inside an app (simpletel-embed
