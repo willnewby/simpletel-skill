@@ -2,7 +2,7 @@
 name: simpletel-onboard
 description: Onboard an application to simpletel — instrument it with upstream OpenTelemetry and send its traces to simpletel. Use when the user asks to "onboard <app> to simpletel", "instrument <app> with OpenTelemetry", or "send traces to simpletel".
 ---
-<!-- managed by: simpletel skill install (20261010.1953.15+bc2fd7f) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
+<!-- managed by: simpletel skill install (20261010.2000.46+3e19914) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
 
 Onboard an application to **simpletel** — get its traces flowing into
 `simpletel get traces` — using the `simpletel` CLI and **upstream
