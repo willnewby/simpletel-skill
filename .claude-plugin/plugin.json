@@ -1,0 +1,21 @@
+{
+  "name": "simpletel",
+  "displayName": "simpletel",
+  "version": "20261009.1952.16+ae9a795",
+  "description": "simpletel agent skills: onboard an app with upstream OpenTelemetry, and embed simpletel in-app (sidecar + adapters).",
+  "author": {
+    "name": "Will Newby",
+    "url": "https://simpletel.dev"
+  },
+  "homepage": "https://simpletel.dev",
+  "repository": "https://github.com/willnewby/simpletel-skill",
+  "license": "MIT",
+  "keywords": [
+    "simpletel",
+    "opentelemetry",
+    "otel",
+    "onboarding",
+    "embedded",
+    "sidecar"
+  ]
+}
