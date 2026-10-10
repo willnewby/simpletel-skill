@@ -1,7 +1,7 @@
 {
   "name": "simpletel",
   "displayName": "simpletel",
-  "version": "20261010.2000.46+3e19914",
+  "version": "20261010.2005.35+1664c74",
   "description": "simpletel agent skills: onboard an app with upstream OpenTelemetry, embed simpletel in-app (sidecar + adapters), and troubleshoot from traces.",
   "author": {
     "name": "Will Newby",

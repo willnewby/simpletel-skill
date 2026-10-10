@@ -2,7 +2,7 @@
 name: simpletel-troubleshoot
 description: Diagnose an application that sends telemetry to simpletel — find the failing or slow request in its traces, read the failing span's error status, events and correlated logs, map them back to code, and confirm the fix. Use when the user asks to "debug <app> with simpletel", "find why <service> is failing", "read the traces for this error", or "troubleshoot this slowdown".
 ---
-<!-- managed by: simpletel skill install (20261010.2000.46+3e19914) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
+<!-- managed by: simpletel skill install (20261010.2005.35+1664c74) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
 
 Diagnose a problem in an application that already sends telemetry to
 **simpletel** — a failing request, a slow endpoint, a regression — using the
