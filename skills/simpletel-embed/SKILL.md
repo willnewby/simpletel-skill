@@ -2,7 +2,7 @@
 name: simpletel-embed
 description: Embed simpletel inside an application — spawn the simpletel-embed sidecar via a language adapter (Go, Django, Rust), mount the trace viewer in the app, and verify the round trip. Use when the user asks to "embed simpletel in <app>", "add an in-app trace viewer", "run simpletel as a sidecar", or "set up the embedded harness".
 ---
-<!-- managed by: simpletel skill install (20261010.2005.35+1664c74) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
+<!-- managed by: simpletel skill install (20261010.2010.32+3951789) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
 
 Embed [simpletel](https://simpletel.dev) **inside** an
 application — single-tenant OTLP ingest, storage, and a trace viewer served
