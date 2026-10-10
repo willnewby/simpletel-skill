@@ -5,6 +5,8 @@
 - `simpletel-onboard` — onboard an application with upstream OpenTelemetry.
 - `simpletel-embed` — embed simpletel inside an app (simpletel-embed
   sidecar via Go/Django/Rust adapters, in-app trace viewer).
+- `simpletel-troubleshoot` — find and diagnose failing or slow requests
+  from an app's traces (list → detail → events + correlated logs).
 
 The skill bodies are byte-identical across every install route below.
 

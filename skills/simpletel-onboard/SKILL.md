@@ -2,7 +2,7 @@
 name: simpletel-onboard
 description: Onboard an application to simpletel — instrument it with upstream OpenTelemetry and send its traces to simpletel. Use when the user asks to "onboard <app> to simpletel", "instrument <app> with OpenTelemetry", or "send traces to simpletel".
 ---
-<!-- managed by: simpletel skill install (20261009.1952.16+ae9a795) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
+<!-- managed by: simpletel skill install (20261010.1953.15+bc2fd7f) — do not hand-edit; regenerate with `simpletel skill install` or `simpletel skill package` -->
 
 Onboard an application to **simpletel** — get its traces flowing into
 `simpletel get traces` — using the `simpletel` CLI and **upstream
@@ -111,22 +111,47 @@ surface. Prefer the zero-code agent where the language has one; it adds
 tracing with no source edit.
 
 - **Python:** `pip install opentelemetry-distro opentelemetry-exporter-otlp`,
-  `opentelemetry-bootstrap -a install`, then launch under
-  `opentelemetry-instrument <start-cmd>`.
-- **Node/JS:** `npm i @opentelemetry/api @opentelemetry/auto-instrumentations-node`,
-  launch with
-  `node --require @opentelemetry/auto-instrumentations-node/register <entry>`.
+  then `opentelemetry-bootstrap -a install` (it inspects *installed*
+  packages, so it must run after the app's own dependencies), then launch the
+  real serving process under `opentelemetry-instrument <start-cmd>`
+  (Django/Flask/FastAPI: covers WSGI/ASGI, the ORM and templates). For
+  application log records correlated into traces, additionally install
+  `opentelemetry-instrumentation-logging` and set `OTEL_LOGS_EXPORTER=otlp`
+  and `OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true`.
+- **Node/JS:** `npm i @opentelemetry/auto-instrumentations-node`, launch with
+  `node --require @opentelemetry/auto-instrumentations-node/register <entry>`
+  (Express/Fastify/Koa/plain HTTP are covered; the register entrypoint reads
+  the env block itself). If the framework's default error handler swallows
+  exceptions, record them in the error middleware via the upstream API —
+  `const s = trace.getActiveSpan(); s?.recordException(err);
+  s?.setStatus({code: SpanStatusCode.ERROR, message: err.message})` — so the
+  failure is visible in the trace.
+- **Ruby:** `bundle add opentelemetry-sdk opentelemetry-exporter-otlp
+  opentelemetry-instrumentation-all`, then one initializer —
+  `OpenTelemetry::SDK.configure { |c| c.use_all }` — as
+  `config/initializers/opentelemetry.rb` (Rails) or near the top of a
+  Sinatra/Rack app; start the app normally (`bin/rails server`,
+  `bundle exec ruby app.rb`). Ruby ≥ 3.1 with Bundler.
+- **Go:** no zero-code agent — add the smallest upstream bootstrap at the
+  process entrypoint: `otlptracehttp.New(ctx)` plus
+  `sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter))`, and
+  `defer tp.Shutdown(ctx)` so a short-lived process flushes before exit.
+  Wrap HTTP handlers with `otelhttp.NewHandler` and outbound calls with
+  `otelhttp.NewTransport`; everything reads the env block.
+- **Rust:** no zero-code agent — the `opentelemetry` + `opentelemetry_sdk` +
+  `opentelemetry-otlp` crates give the tracer provider; build it once at
+  startup and force-flush/shutdown before exit.
 - **Java:** download `opentelemetry-javaagent.jar`, launch with
   `java -javaagent:opentelemetry-javaagent.jar -jar <app>`.
-- **.NET:** the OpenTelemetry .NET automatic-instrumentation install script
-  and its launch shim.
-- **Go / Rust (no zero-code agent):** add the smallest upstream SDK bootstrap
-  from that language's getting-started guide — for Go, the
-  `otel` + `otlptracehttp` + `sdk/trace` setup that reads the
-  `OTEL_EXPORTER_OTLP_*` env vars — placed at the process entrypoint and shut
-  down (flushed) on exit. Add bootstrap and wiring only; do not sprinkle
-  manual spans through the codebase. Auto/library instrumentation provides the
-  first useful spans; manual spans are a follow-up once data is flowing.
+- **.NET:** run the OpenTelemetry .NET automatic-instrumentation install
+  script and launch through the shim it documents.
+
+Add bootstrap and wiring only; do not sprinkle manual spans through the
+codebase — auto/library instrumentation provides the first useful spans, and
+manual spans are a follow-up once data is flowing. **Short-lived processes**
+(a CLI, a job) must flush explicitly (Go `tp.Shutdown`, Ruby
+`OpenTelemetry.tracer_provider.shutdown`, Node the SDK's `shutdown`), or
+their last spans never leave the process.
 
 Never write a simpletel-specific exporter or client, and never add a simpletel
 package to the app's dependency graph. If the upstream SDK can be pointed at
@@ -161,7 +186,7 @@ non-zero. Diagnose from that rung:
 |---|---|---|
 | **pipe** | any fresh trace arrived at all | endpoint reachability (is the server up?), the team credential (`x-simpletel-team` in `OTEL_EXPORTER_OTLP_HEADERS` from `simpletel env`), and that the app's OTLP exporter points at simpletel. `simpletel run -- <cmd>` is a quick pipe test. |
 | **identity** | a fresh trace under `service.name` == `<OTEL_SERVICE_NAME>` | `OTEL_SERVICE_NAME` was actually exported as the expected value (the command prints the service names it saw), and the env block was applied to the exporter process, not a parent shell that the server doesn't inherit. |
-| **richness** | a matching trace has spans from a library auto-instrumentation | auto-instrumentation is not engaged — install the instrumentation packages for the app's dependencies, wrap the real serving process with the zero-code agent, and exercise real HTTP traffic (an idle server emits nothing). Batch exporters flush on a delay (~5s), so wait a few seconds before concluding it is broken. |
+| **richness** | a matching trace has spans from a library auto-instrumentation | auto-instrumentation is not engaged — install the instrumentation packages for the app's dependencies, wrap the real serving process with the zero-code agent, and exercise real HTTP traffic (an idle server emits nothing). The failure output lists the scope names seen on the inspected trace: a name from your language's upstream family (step 6) — `opentelemetry.instrumentation.*`, `@opentelemetry/instrumentation-*`, `OpenTelemetry::Instrumentation::*`, `go.opentelemetry.io/contrib/instrumentation/...` — means the library is engaged; `simpletel-cli`, your own tracer name, or an empty list means it is not. Batch exporters flush on a delay (~5s), so wait a few seconds before concluding it is broken. |
 
 For a **Python/Django** app whose richness rung fails, in order:
 
@@ -175,6 +200,14 @@ For a **Python/Django** app whose richness rung fails, in order:
    actual request through the WSGI middleware, not while the server sits idle.
 4. Batch exporters flush on a ~5s schedule, so wait before deciding it is
    broken.
+
+The same shape applies elsewhere: **Node** — confirm the `--require
+.../register` flag wraps the real entrypoint (not a launcher script) and,
+when the framework handles its own errors, that the error middleware records
+them (step 6); **Ruby** — confirm `c.use_all` ran before the first request
+(Rails: the initializer) and the rack middleware is in the stack; **Go** —
+confirm the server runs `otelhttp.NewHandler` and that `tp.Shutdown` runs on
+exit (a batch that never flushes looks exactly like no instrumentation).
 
 ## 8. Hand off to the human
 
@@ -191,5 +224,8 @@ concrete, in this order:
   browser), where the human can watch traces land.
 
 Then add the one-line "what to do next": open the console's errors-only view
-to catch problems early. Report those four fields together — never leave the
-human with just "it worked".
+to catch problems early, and — when something breaks — work the
+`simpletel-troubleshoot` skill (or the `simpletel mcp` tools) from the
+debugging agent: find the failing trace, read its error span and correlated
+logs, and map it back to the code. Report those four fields together — never
+leave the human with just "it worked".

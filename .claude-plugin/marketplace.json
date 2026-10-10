@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "simpletel",
-  "description": "simpletel agent skills: onboard an app with upstream OpenTelemetry, and embed simpletel in-app (sidecar + adapters).",
+  "description": "simpletel agent skills: onboard an app with upstream OpenTelemetry, embed simpletel in-app (sidecar + adapters), and troubleshoot from traces.",
   "owner": {
     "name": "Will Newby",
     "url": "https://simpletel.dev"
@@ -10,7 +10,7 @@
     {
       "name": "simpletel",
       "source": "./",
-      "description": "simpletel agent skills: onboard an app with upstream OpenTelemetry, and embed simpletel in-app (sidecar + adapters).",
+      "description": "simpletel agent skills: onboard an app with upstream OpenTelemetry, embed simpletel in-app (sidecar + adapters), and troubleshoot from traces.",
       "category": "development"
     }
   ]
